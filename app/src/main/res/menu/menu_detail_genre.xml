@@ -8,6 +8,12 @@
         app:showAsAction="ifRoom" />
 
     <item
+        android:id="@+id/action_genre_radio"
+        android:icon="@drawable/ic_queue_music_white_24dp"
+        android:title="@string/action_genre_radio"
+        app:showAsAction="always" />
+
+    <item
         android:id="@+id/action_download"
         android:title="@string/action_download"
         app:showAsAction="never" />

@@ -209,6 +209,16 @@ public class ArtistDetailActivity extends AbsMusicContentActivity implements Pal
             case R.id.action_shuffle_artist:
                 MusicPlayerRemote.openAndShuffleQueue(songs, true);
                 return true;
+            case R.id.action_artist_radio:
+                QueryUtil.getInstantMix(artist.id, mixSongs -> {
+                    if (!mixSongs.isEmpty()) {
+                        MusicPlayerRemote.openQueue(mixSongs, 0, true);
+                        android.widget.Toast.makeText(this, "Starting artist radio", android.widget.Toast.LENGTH_SHORT).show();
+                    } else {
+                        android.widget.Toast.makeText(this, R.string.no_songs, android.widget.Toast.LENGTH_SHORT).show();
+                    }
+                });
+                return true;
             case R.id.action_play_next:
                 MusicPlayerRemote.playNext(songs);
                 return true;

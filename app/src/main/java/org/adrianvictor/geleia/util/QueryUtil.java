@@ -16,6 +16,7 @@ import org.jellyfin.apiclient.model.querying.ItemFields;
 import org.jellyfin.apiclient.model.querying.ItemQuery;
 import org.jellyfin.apiclient.model.querying.ItemsByNameQuery;
 import org.jellyfin.apiclient.model.querying.ItemsResult;
+import org.jellyfin.apiclient.model.querying.SimilarItemsQuery;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -200,5 +201,31 @@ public class QueryUtil {
 
         if (currentLibrary == null || query.getParentId() != null) return;
         query.setParentId(currentLibrary.getId());
+    }
+
+    public static void getInstantMix(String itemId, MediaCallback<Song> callback) {
+        SimilarItemsQuery query = new SimilarItemsQuery();
+        query.setUserId(App.getApiClient().getCurrentUserId());
+        query.setId(itemId);
+        query.setLimit(50);
+        query.setFields(new ItemFields[]{ItemFields.MediaSources});
+        App.getApiClient().GetInstantMixFromItem(query, new Response<ItemsResult>() {
+            @Override
+            public void onResponse(ItemsResult result) {
+                List<Song> songs = new ArrayList<>();
+                if (result != null && result.getItems() != null) {
+                    for (BaseItemDto itemDto : result.getItems()) {
+                        songs.add(new Song(itemDto));
+                    }
+                }
+
+                callback.onLoadMedia(songs);
+            }
+
+            @Override
+            public void onError(Exception exception) {
+                exception.printStackTrace();
+            }
+        });
     }
 }

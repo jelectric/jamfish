@@ -182,6 +182,16 @@ public class AlbumDetailActivity extends AbsMusicContentActivity implements Pale
             case R.id.action_shuffle_album:
                 MusicPlayerRemote.openAndShuffleQueue(songs, true);
                 return true;
+            case R.id.action_album_radio:
+                QueryUtil.getInstantMix(album.id, mixSongs -> {
+                    if (!mixSongs.isEmpty()) {
+                        MusicPlayerRemote.openQueue(mixSongs, 0, true);
+                        android.widget.Toast.makeText(this, "Starting album radio", android.widget.Toast.LENGTH_SHORT).show();
+                    } else {
+                        android.widget.Toast.makeText(this, R.string.no_songs, android.widget.Toast.LENGTH_SHORT).show();
+                    }
+                });
+                return true;
             case R.id.action_play_next:
                 MusicPlayerRemote.playNext(songs);
                 return true;

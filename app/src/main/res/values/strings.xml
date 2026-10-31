@@ -253,4 +253,8 @@
         <item quantity="other">Downloading %d songs</item>
     </plurals>
 
+    <string name="action_artist_radio">Artist radio</string>
+    <string name="action_album_radio">Album radio</string>
+    <string name="action_genre_radio">Genre radio</string>
+
 </resources>
