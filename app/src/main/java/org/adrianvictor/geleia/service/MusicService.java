@@ -2,7 +2,6 @@ package org.adrianvictor.geleia.service;
 
 import android.annotation.SuppressLint;
 import android.app.PendingIntent;
-import android.app.Service;
 import android.appwidget.AppWidgetManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -23,9 +22,13 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.PowerManager;
 import android.os.Process;
+import android.os.Bundle;
+import android.support.v4.media.MediaBrowserCompat;
+import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
+import androidx.media.MediaBrowserServiceCompat;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -39,7 +42,11 @@ import org.adrianvictor.geleia.BuildConfig;
 import org.adrianvictor.geleia.R;
 import org.adrianvictor.geleia.glide.BlurTransformation;
 import org.adrianvictor.geleia.glide.CustomGlideRequest;
+import org.adrianvictor.geleia.model.Album;
+import org.adrianvictor.geleia.model.Artist;
+import org.adrianvictor.geleia.model.Genre;
 import org.adrianvictor.geleia.model.Playlist;
+import org.adrianvictor.geleia.model.PlaylistSong;
 import org.adrianvictor.geleia.model.Song;
 import org.adrianvictor.geleia.service.notifications.PlayingNotification;
 import org.adrianvictor.geleia.service.notifications.PlayingNotificationMarshmallow;
@@ -48,8 +55,14 @@ import org.adrianvictor.geleia.service.playback.LocalPlayer;
 import org.adrianvictor.geleia.service.playback.Playback;
 import org.adrianvictor.geleia.service.playback.PlaybackListener;
 import org.adrianvictor.geleia.service.receivers.MediaButtonIntentReceiver;
+import org.adrianvictor.geleia.util.PlaylistUtil;
 import org.adrianvictor.geleia.util.PreferenceUtil;
+import org.adrianvictor.geleia.util.QueryUtil;
 import org.adrianvictor.geleia.util.Util;
+import org.jellyfin.apiclient.model.playlists.PlaylistItemQuery;
+import org.jellyfin.apiclient.model.querying.ArtistsQuery;
+import org.jellyfin.apiclient.model.querying.ItemFilter;
+import org.jellyfin.apiclient.model.querying.ItemQuery;
 import org.adrianvictor.geleia.views.widgets.AppWidgetAlbum;
 import org.adrianvictor.geleia.views.widgets.AppWidgetCard;
 import org.adrianvictor.geleia.views.widgets.AppWidgetClassic;
@@ -75,7 +88,7 @@ import static com.google.android.exoplayer2.Player.MEDIA_ITEM_TRANSITION_REASON_
 import static com.google.android.exoplayer2.Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED;
 import static com.google.android.exoplayer2.Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM;
 
-public class MusicService extends Service implements SharedPreferences.OnSharedPreferenceChangeListener {
+public class MusicService extends MediaBrowserServiceCompat implements SharedPreferences.OnSharedPreferenceChangeListener {
     public static final String PACKAGE_NAME = BuildConfig.APPLICATION_ID;
 
     public static final String ACTION_TOGGLE = PACKAGE_NAME + ".toggle";
@@ -87,6 +100,7 @@ public class MusicService extends Service implements SharedPreferences.OnSharedP
     public static final String ACTION_REWIND = PACKAGE_NAME + ".rewind";
     public static final String ACTION_QUIT = PACKAGE_NAME + ".quit";
     public static final String ACTION_PENDING_QUIT = PACKAGE_NAME + ".quit.pending";
+    public static final String ACTION_START_RADIO = PACKAGE_NAME + ".action.start.radio";
 
     public static final String INTENT_EXTRA_PLAYLIST = PACKAGE_NAME + ".extra.playlist";
     public static final String INTENT_EXTRA_SHUFFLE = PACKAGE_NAME + ".extra.shuffle";
@@ -260,6 +274,7 @@ public class MusicService extends Service implements SharedPreferences.OnSharedP
 
         initNotification();
         initMediaSession();
+        setSessionToken(mediaSession.getSessionToken());
         restoreState();
 
         mediaSession.setActive(true);
@@ -308,6 +323,34 @@ public class MusicService extends Service implements SharedPreferences.OnSharedP
             @Override
             public boolean onMediaButtonEvent(Intent mediaButtonEvent) {
                 return MediaButtonIntentReceiver.handleIntent(MusicService.this, mediaButtonEvent);
+            }
+
+            @Override
+            public void onPlayFromMediaId(String mediaId, Bundle extras) {
+                ItemQuery query = new ItemQuery();
+                query.setIds(new String[]{mediaId});
+                QueryUtil.getSongs(query, songs -> {
+                    if (!songs.isEmpty()) {
+                        openQueue(songs, 0, true);
+                    }
+                });
+            }
+
+            @Override
+            public void onCustomAction(String action, Bundle extras) {
+                if (ACTION_START_RADIO.equals(action)) {
+                    Song current = queueManager.getCurrentSong();
+                    if (current != null) {
+                        QueryUtil.getInstantMix(current.id, songs -> {
+                            if (!songs.isEmpty()) {
+                                openQueue(songs, 0, true);
+                                Toast.makeText(MusicService.this, "Starting radio mix", Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(MusicService.this, R.string.no_songs, Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+                }
             }
         });
 
@@ -488,11 +531,19 @@ public class MusicService extends Service implements SharedPreferences.OnSharedP
     }
 
     private void updateMediaSessionState() {
-        mediaSession.setPlaybackState(
-            new PlaybackStateCompat.Builder()
+        PlaybackStateCompat.Builder stateBuilder = new PlaybackStateCompat.Builder()
                 .setActions(MEDIA_SESSION_ACTIONS)
-                .setState(isPlaying() ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED, getSongProgressMillis(), 1)
-                .build());
+                .setState(isPlaying() ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED, getSongProgressMillis(), 1);
+
+        if (queueManager.getCurrentSong() != null) {
+            stateBuilder.addCustomAction(
+                    ACTION_START_RADIO,
+                    "Start Radio",
+                    R.drawable.ic_queue_music_white_24dp
+            );
+        }
+
+        mediaSession.setPlaybackState(stateBuilder.build());
     }
 
     @SuppressLint("CheckResult")
@@ -794,6 +845,214 @@ public class MusicService extends Service implements SharedPreferences.OnSharedP
 
             if (task != null) task.cancel(true);
             if (executorService != null) executorService.shutdownNow();
+        }
+    }
+
+    @Nullable
+    @Override
+    public BrowserRoot onGetRoot(@NonNull String clientPackageName, int clientUid, @Nullable Bundle rootHints) {
+        return new BrowserRoot("root", null);
+    }
+
+    @Override
+    public void onLoadChildren(@NonNull String parentId, @NonNull Result<List<MediaBrowserCompat.MediaItem>> result) {
+        List<MediaBrowserCompat.MediaItem> mediaItems = new ArrayList<>();
+        if ("root".equals(parentId)) {
+            mediaItems.add(new MediaBrowserCompat.MediaItem(
+                    new MediaDescriptionCompat.Builder()
+                            .setMediaId("playlists")
+                            .setTitle(getString(R.string.playlists))
+                            .build(),
+                    MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+            ));
+            mediaItems.add(new MediaBrowserCompat.MediaItem(
+                    new MediaDescriptionCompat.Builder()
+                            .setMediaId("artists")
+                            .setTitle(getString(R.string.artists))
+                            .build(),
+                    MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+            ));
+            mediaItems.add(new MediaBrowserCompat.MediaItem(
+                    new MediaDescriptionCompat.Builder()
+                            .setMediaId("albums")
+                            .setTitle(getString(R.string.albums))
+                            .build(),
+                    MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+            ));
+            mediaItems.add(new MediaBrowserCompat.MediaItem(
+                    new MediaDescriptionCompat.Builder()
+                            .setMediaId("genres")
+                            .setTitle(getString(R.string.genres))
+                            .build(),
+                    MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+            ));
+            mediaItems.add(new MediaBrowserCompat.MediaItem(
+                    new MediaDescriptionCompat.Builder()
+                            .setMediaId("favorites")
+                            .setTitle(getString(R.string.favorites))
+                            .build(),
+                    MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+            ));
+            result.sendResult(mediaItems);
+        } else if ("playlists".equals(parentId)) {
+            result.detach();
+            QueryUtil.getPlaylists(playlists -> {
+                List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                for (Playlist playlist : playlists) {
+                    items.add(new MediaBrowserCompat.MediaItem(
+                            new MediaDescriptionCompat.Builder()
+                                    .setMediaId("playlist_" + playlist.id)
+                                    .setTitle(playlist.name)
+                                    .build(),
+                            MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+                    ));
+                }
+                result.sendResult(items);
+            });
+        } else if ("artists".equals(parentId)) {
+            result.detach();
+            ArtistsQuery query = new ArtistsQuery();
+            QueryUtil.getArtists(query, artists -> {
+                List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                for (Artist artist : artists) {
+                    items.add(new MediaBrowserCompat.MediaItem(
+                            new MediaDescriptionCompat.Builder()
+                                    .setMediaId("artist_" + artist.id)
+                                    .setTitle(artist.name)
+                                    .build(),
+                            MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+                    ));
+                }
+                result.sendResult(items);
+            });
+        } else if ("albums".equals(parentId)) {
+            result.detach();
+            ItemQuery query = new ItemQuery();
+            QueryUtil.getAlbums(query, albums -> {
+                List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                for (Album album : albums) {
+                    items.add(new MediaBrowserCompat.MediaItem(
+                            new MediaDescriptionCompat.Builder()
+                                    .setMediaId("album_" + album.id)
+                                    .setTitle(album.title)
+                                    .setSubtitle(album.artistName)
+                                    .build(),
+                            MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+                    ));
+                }
+                result.sendResult(items);
+            });
+        } else if ("genres".equals(parentId)) {
+            result.detach();
+            QueryUtil.getGenres(genres -> {
+                List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                for (Genre genre : genres) {
+                    items.add(new MediaBrowserCompat.MediaItem(
+                            new MediaDescriptionCompat.Builder()
+                                    .setMediaId("genre_" + genre.id)
+                                    .setTitle(genre.name)
+                                    .build(),
+                            MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+                    ));
+                }
+                result.sendResult(items);
+            });
+        } else if ("favorites".equals(parentId)) {
+            result.detach();
+            ItemQuery query = new ItemQuery();
+            query.setFilters(new ItemFilter[]{ItemFilter.IsFavorite});
+            QueryUtil.getSongs(query, songs -> {
+                List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                for (Song song : songs) {
+                    items.add(new MediaBrowserCompat.MediaItem(
+                            new MediaDescriptionCompat.Builder()
+                                    .setMediaId(song.id)
+                                    .setTitle(song.title)
+                                    .setSubtitle(song.artistName)
+                                    .build(),
+                            MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                    ));
+                }
+                result.sendResult(items);
+            });
+        } else if (parentId.startsWith("album_")) {
+            result.detach();
+            String albumId = parentId.substring(6);
+            ItemQuery query = new ItemQuery();
+            query.setParentId(albumId);
+            QueryUtil.getSongs(query, songs -> {
+                List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                for (Song song : songs) {
+                    items.add(new MediaBrowserCompat.MediaItem(
+                            new MediaDescriptionCompat.Builder()
+                                    .setMediaId(song.id)
+                                    .setTitle(song.title)
+                                    .setSubtitle(song.artistName)
+                                    .build(),
+                            MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                    ));
+                }
+                result.sendResult(items);
+            });
+        } else if (parentId.startsWith("artist_")) {
+            result.detach();
+            String artistId = parentId.substring(7);
+            ItemQuery query = new ItemQuery();
+            query.setArtistIds(new String[]{artistId});
+            QueryUtil.getSongs(query, songs -> {
+                List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                for (Song song : songs) {
+                    items.add(new MediaBrowserCompat.MediaItem(
+                            new MediaDescriptionCompat.Builder()
+                                    .setMediaId(song.id)
+                                    .setTitle(song.title)
+                                    .setSubtitle(song.artistName)
+                                    .build(),
+                            MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                    ));
+                }
+                result.sendResult(items);
+            });
+        } else if (parentId.startsWith("genre_")) {
+            result.detach();
+            String genreId = parentId.substring(6);
+            ItemQuery query = new ItemQuery();
+            query.setGenreIds(new String[]{genreId});
+            QueryUtil.getSongs(query, songs -> {
+                List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                for (Song song : songs) {
+                    items.add(new MediaBrowserCompat.MediaItem(
+                            new MediaDescriptionCompat.Builder()
+                                    .setMediaId(song.id)
+                                    .setTitle(song.title)
+                                    .setSubtitle(song.artistName)
+                                    .build(),
+                            MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                    ));
+                }
+                result.sendResult(items);
+            });
+        } else if (parentId.startsWith("playlist_")) {
+            result.detach();
+            String playlistId = parentId.substring(9);
+            PlaylistItemQuery query = new PlaylistItemQuery();
+            query.setId(playlistId);
+            PlaylistUtil.getPlaylist(query, songs -> {
+                List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                for (PlaylistSong song : songs) {
+                    items.add(new MediaBrowserCompat.MediaItem(
+                            new MediaDescriptionCompat.Builder()
+                                    .setMediaId(song.id)
+                                    .setTitle(song.title)
+                                    .setSubtitle(song.artistName)
+                                    .build(),
+                            MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                    ));
+                }
+                result.sendResult(items);
+            });
+        } else {
+            result.sendResult(mediaItems);
         }
     }
 }
