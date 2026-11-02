@@ -923,15 +923,8 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
                 ));
                 mediaItems.add(new MediaBrowserCompat.MediaItem(
                         new MediaDescriptionCompat.Builder()
-                                .setMediaId("genres")
-                                .setTitle(getString(R.string.genres))
-                                .build(),
-                        MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
-                ));
-                mediaItems.add(new MediaBrowserCompat.MediaItem(
-                        new MediaDescriptionCompat.Builder()
-                                .setMediaId("favorites")
-                                .setTitle(getString(R.string.favorites))
+                                .setMediaId("songs")
+                                .setTitle(getString(R.string.songs))
                                 .build(),
                         MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
                 ));
@@ -951,6 +944,24 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
                                                         .setTitle(playlist.name)
                                                         .build(),
                                                 MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+                                        ));
+                                    }
+                                }
+                                result.sendResult(items);
+                            });
+                        } else if ("songs".equals(parentId)) {
+                            ItemQuery query = new ItemQuery();
+                            QueryUtil.getSongs(query, songs -> {
+                                List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                                if (songs != null) {
+                                    for (Song song : songs) {
+                                        items.add(new MediaBrowserCompat.MediaItem(
+                                                new MediaDescriptionCompat.Builder()
+                                                        .setMediaId(song.id)
+                                                        .setTitle(song.title)
+                                                        .setSubtitle(song.artistName)
+                                                        .build(),
+                                                MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
                                         ));
                                     }
                                 }
