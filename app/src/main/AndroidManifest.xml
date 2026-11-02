@@ -13,6 +13,13 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
+    <queries>
+        <intent>
+            <action android:name="android.media.browse.MediaBrowserService" />
+        </intent>
+        <package android:name="com.google.android.projection.gearhead" />
+    </queries>
+
     <application
         android:name="org.adrianvictor.geleia.App"
         android:allowBackup="true"
@@ -70,7 +77,18 @@
         <activity android:name="org.adrianvictor.geleia.activities.UnreachableActivity" />
         <service android:name="org.adrianvictor.geleia.service.DownloadService" />
         <service android:name="org.adrianvictor.geleia.service.LoginService" />
-        <service android:name="org.adrianvictor.geleia.service.MusicService" />
+        <service
+            android:name="org.adrianvictor.geleia.service.MusicService"
+            android:exported="true"
+            tools:ignore="ExportedService">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
+
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
 
         <receiver android:name="org.adrianvictor.geleia.service.receivers.MediaButtonIntentReceiver" android:exported="false">
             <intent-filter>
