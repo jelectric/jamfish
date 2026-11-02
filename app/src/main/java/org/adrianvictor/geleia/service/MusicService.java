@@ -857,202 +857,219 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
     @Override
     public void onLoadChildren(@NonNull String parentId, @NonNull Result<List<MediaBrowserCompat.MediaItem>> result) {
         List<MediaBrowserCompat.MediaItem> mediaItems = new ArrayList<>();
-        if ("root".equals(parentId)) {
+        if (App.getApiClient() == null || App.getApiClient().getCurrentUserId() == null) {
             mediaItems.add(new MediaBrowserCompat.MediaItem(
                     new MediaDescriptionCompat.Builder()
-                            .setMediaId("playlists")
-                            .setTitle(getString(R.string.playlists))
+                            .setMediaId("login_required")
+                            .setTitle("Please open Jamfish app and log in")
                             .build(),
-                    MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
-            ));
-            mediaItems.add(new MediaBrowserCompat.MediaItem(
-                    new MediaDescriptionCompat.Builder()
-                            .setMediaId("artists")
-                            .setTitle(getString(R.string.artists))
-                            .build(),
-                    MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
-            ));
-            mediaItems.add(new MediaBrowserCompat.MediaItem(
-                    new MediaDescriptionCompat.Builder()
-                            .setMediaId("albums")
-                            .setTitle(getString(R.string.albums))
-                            .build(),
-                    MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
-            ));
-            mediaItems.add(new MediaBrowserCompat.MediaItem(
-                    new MediaDescriptionCompat.Builder()
-                            .setMediaId("genres")
-                            .setTitle(getString(R.string.genres))
-                            .build(),
-                    MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
-            ));
-            mediaItems.add(new MediaBrowserCompat.MediaItem(
-                    new MediaDescriptionCompat.Builder()
-                            .setMediaId("favorites")
-                            .setTitle(getString(R.string.favorites))
-                            .build(),
-                    MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+                    MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
             ));
             result.sendResult(mediaItems);
-        } else if ("playlists".equals(parentId)) {
-            result.detach();
-            QueryUtil.getPlaylists(playlists -> {
-                List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
-                for (Playlist playlist : playlists) {
-                    items.add(new MediaBrowserCompat.MediaItem(
-                            new MediaDescriptionCompat.Builder()
-                                    .setMediaId("playlist_" + playlist.id)
-                                    .setTitle(playlist.name)
-                                    .build(),
-                            MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
-                    ));
-                }
-                result.sendResult(items);
-            });
-        } else if ("artists".equals(parentId)) {
-            result.detach();
-            ArtistsQuery query = new ArtistsQuery();
-            QueryUtil.getArtists(query, artists -> {
-                List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
-                for (Artist artist : artists) {
-                    items.add(new MediaBrowserCompat.MediaItem(
-                            new MediaDescriptionCompat.Builder()
-                                    .setMediaId("artist_" + artist.id)
-                                    .setTitle(artist.name)
-                                    .build(),
-                            MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
-                    ));
-                }
-                result.sendResult(items);
-            });
-        } else if ("albums".equals(parentId)) {
-            result.detach();
-            ItemQuery query = new ItemQuery();
-            QueryUtil.getAlbums(query, albums -> {
-                List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
-                for (Album album : albums) {
-                    items.add(new MediaBrowserCompat.MediaItem(
-                            new MediaDescriptionCompat.Builder()
-                                    .setMediaId("album_" + album.id)
-                                    .setTitle(album.title)
-                                    .setSubtitle(album.artistName)
-                                    .build(),
-                            MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
-                    ));
-                }
-                result.sendResult(items);
-            });
-        } else if ("genres".equals(parentId)) {
-            result.detach();
-            QueryUtil.getGenres(genres -> {
-                List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
-                for (Genre genre : genres) {
-                    items.add(new MediaBrowserCompat.MediaItem(
-                            new MediaDescriptionCompat.Builder()
-                                    .setMediaId("genre_" + genre.id)
-                                    .setTitle(genre.name)
-                                    .build(),
-                            MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
-                    ));
-                }
-                result.sendResult(items);
-            });
-        } else if ("favorites".equals(parentId)) {
-            result.detach();
-            ItemQuery query = new ItemQuery();
-            query.setFilters(new ItemFilter[]{ItemFilter.IsFavorite});
-            QueryUtil.getSongs(query, songs -> {
-                List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
-                for (Song song : songs) {
-                    items.add(new MediaBrowserCompat.MediaItem(
-                            new MediaDescriptionCompat.Builder()
-                                    .setMediaId(song.id)
-                                    .setTitle(song.title)
-                                    .setSubtitle(song.artistName)
-                                    .build(),
-                            MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
-                    ));
-                }
-                result.sendResult(items);
-            });
-        } else if (parentId.startsWith("album_")) {
-            result.detach();
-            String albumId = parentId.substring(6);
-            ItemQuery query = new ItemQuery();
-            query.setParentId(albumId);
-            QueryUtil.getSongs(query, songs -> {
-                List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
-                for (Song song : songs) {
-                    items.add(new MediaBrowserCompat.MediaItem(
-                            new MediaDescriptionCompat.Builder()
-                                    .setMediaId(song.id)
-                                    .setTitle(song.title)
-                                    .setSubtitle(song.artistName)
-                                    .build(),
-                            MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
-                    ));
-                }
-                result.sendResult(items);
-            });
-        } else if (parentId.startsWith("artist_")) {
-            result.detach();
-            String artistId = parentId.substring(7);
-            ItemQuery query = new ItemQuery();
-            query.setArtistIds(new String[]{artistId});
-            QueryUtil.getSongs(query, songs -> {
-                List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
-                for (Song song : songs) {
-                    items.add(new MediaBrowserCompat.MediaItem(
-                            new MediaDescriptionCompat.Builder()
-                                    .setMediaId(song.id)
-                                    .setTitle(song.title)
-                                    .setSubtitle(song.artistName)
-                                    .build(),
-                            MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
-                    ));
-                }
-                result.sendResult(items);
-            });
-        } else if (parentId.startsWith("genre_")) {
-            result.detach();
-            String genreId = parentId.substring(6);
-            ItemQuery query = new ItemQuery();
-            query.setGenreIds(new String[]{genreId});
-            QueryUtil.getSongs(query, songs -> {
-                List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
-                for (Song song : songs) {
-                    items.add(new MediaBrowserCompat.MediaItem(
-                            new MediaDescriptionCompat.Builder()
-                                    .setMediaId(song.id)
-                                    .setTitle(song.title)
-                                    .setSubtitle(song.artistName)
-                                    .build(),
-                            MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
-                    ));
-                }
-                result.sendResult(items);
-            });
-        } else if (parentId.startsWith("playlist_")) {
-            result.detach();
-            String playlistId = parentId.substring(9);
-            PlaylistItemQuery query = new PlaylistItemQuery();
-            query.setId(playlistId);
-            PlaylistUtil.getPlaylist(query, songs -> {
-                List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
-                for (PlaylistSong song : songs) {
-                    items.add(new MediaBrowserCompat.MediaItem(
-                            new MediaDescriptionCompat.Builder()
-                                    .setMediaId(song.id)
-                                    .setTitle(song.title)
-                                    .setSubtitle(song.artistName)
-                                    .build(),
-                            MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
-                    ));
-                }
-                result.sendResult(items);
-            });
-        } else {
-            result.sendResult(mediaItems);
+            return;
+        }
+
+        try {
+            if ("root".equals(parentId)) {
+                mediaItems.add(new MediaBrowserCompat.MediaItem(
+                        new MediaDescriptionCompat.Builder()
+                                .setMediaId("playlists")
+                                .setTitle(getString(R.string.playlists))
+                                .build(),
+                        MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+                ));
+                mediaItems.add(new MediaBrowserCompat.MediaItem(
+                        new MediaDescriptionCompat.Builder()
+                                .setMediaId("artists")
+                                .setTitle(getString(R.string.artists))
+                                .build(),
+                        MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+                ));
+                mediaItems.add(new MediaBrowserCompat.MediaItem(
+                        new MediaDescriptionCompat.Builder()
+                                .setMediaId("albums")
+                                .setTitle(getString(R.string.albums))
+                                .build(),
+                        MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+                ));
+                mediaItems.add(new MediaBrowserCompat.MediaItem(
+                        new MediaDescriptionCompat.Builder()
+                                .setMediaId("genres")
+                                .setTitle(getString(R.string.genres))
+                                .build(),
+                        MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+                ));
+                mediaItems.add(new MediaBrowserCompat.MediaItem(
+                        new MediaDescriptionCompat.Builder()
+                                .setMediaId("favorites")
+                                .setTitle(getString(R.string.favorites))
+                                .build(),
+                        MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+                ));
+                result.sendResult(mediaItems);
+            } else if ("playlists".equals(parentId)) {
+                result.detach();
+                QueryUtil.getPlaylists(playlists -> {
+                    List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                    for (Playlist playlist : playlists) {
+                        items.add(new MediaBrowserCompat.MediaItem(
+                                new MediaDescriptionCompat.Builder()
+                                        .setMediaId("playlist_" + playlist.id)
+                                        .setTitle(playlist.name)
+                                        .build(),
+                                MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+                        ));
+                    }
+                    result.sendResult(items);
+                });
+            } else if ("artists".equals(parentId)) {
+                result.detach();
+                ArtistsQuery query = new ArtistsQuery();
+                QueryUtil.getArtists(query, artists -> {
+                    List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                    for (Artist artist : artists) {
+                        items.add(new MediaBrowserCompat.MediaItem(
+                                new MediaDescriptionCompat.Builder()
+                                        .setMediaId("artist_" + artist.id)
+                                        .setTitle(artist.name)
+                                        .build(),
+                                MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+                        ));
+                    }
+                    result.sendResult(items);
+                });
+            } else if ("albums".equals(parentId)) {
+                result.detach();
+                ItemQuery query = new ItemQuery();
+                QueryUtil.getAlbums(query, albums -> {
+                    List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                    for (Album album : albums) {
+                        items.add(new MediaBrowserCompat.MediaItem(
+                                new MediaDescriptionCompat.Builder()
+                                        .setMediaId("album_" + album.id)
+                                        .setTitle(album.title)
+                                        .setSubtitle(album.artistName)
+                                        .build(),
+                                MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+                        ));
+                    }
+                    result.sendResult(items);
+                });
+            } else if ("genres".equals(parentId)) {
+                result.detach();
+                QueryUtil.getGenres(genres -> {
+                    List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                    for (Genre genre : genres) {
+                        items.add(new MediaBrowserCompat.MediaItem(
+                                new MediaDescriptionCompat.Builder()
+                                        .setMediaId("genre_" + genre.id)
+                                        .setTitle(genre.name)
+                                        .build(),
+                                MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+                        ));
+                    }
+                    result.sendResult(items);
+                });
+            } else if ("favorites".equals(parentId)) {
+                result.detach();
+                ItemQuery query = new ItemQuery();
+                query.setFilters(new ItemFilter[]{ItemFilter.IsFavorite});
+                QueryUtil.getSongs(query, songs -> {
+                    List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                    for (Song song : songs) {
+                        items.add(new MediaBrowserCompat.MediaItem(
+                                new MediaDescriptionCompat.Builder()
+                                        .setMediaId(song.id)
+                                        .setTitle(song.title)
+                                        .setSubtitle(song.artistName)
+                                        .build(),
+                                MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                        ));
+                    }
+                    result.sendResult(items);
+                });
+            } else if (parentId.startsWith("album_")) {
+                result.detach();
+                String albumId = parentId.substring(6);
+                ItemQuery query = new ItemQuery();
+                query.setParentId(albumId);
+                QueryUtil.getSongs(query, songs -> {
+                    List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                    for (Song song : songs) {
+                        items.add(new MediaBrowserCompat.MediaItem(
+                                new MediaDescriptionCompat.Builder()
+                                        .setMediaId(song.id)
+                                        .setTitle(song.title)
+                                        .setSubtitle(song.artistName)
+                                        .build(),
+                                MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                        ));
+                    }
+                    result.sendResult(items);
+                });
+            } else if (parentId.startsWith("artist_")) {
+                result.detach();
+                String artistId = parentId.substring(7);
+                ItemQuery query = new ItemQuery();
+                query.setArtistIds(new String[]{artistId});
+                QueryUtil.getSongs(query, songs -> {
+                    List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                    for (Song song : songs) {
+                        items.add(new MediaBrowserCompat.MediaItem(
+                                new MediaDescriptionCompat.Builder()
+                                        .setMediaId(song.id)
+                                        .setTitle(song.title)
+                                        .setSubtitle(song.artistName)
+                                        .build(),
+                                MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                        ));
+                    }
+                    result.sendResult(items);
+                });
+            } else if (parentId.startsWith("genre_")) {
+                result.detach();
+                String genreId = parentId.substring(6);
+                ItemQuery query = new ItemQuery();
+                query.setGenreIds(new String[]{genreId});
+                QueryUtil.getSongs(query, songs -> {
+                    List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                    for (Song song : songs) {
+                        items.add(new MediaBrowserCompat.MediaItem(
+                                new MediaDescriptionCompat.Builder()
+                                        .setMediaId(song.id)
+                                        .setTitle(song.title)
+                                        .setSubtitle(song.artistName)
+                                        .build(),
+                                MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                        ));
+                    }
+                    result.sendResult(items);
+                });
+            } else if (parentId.startsWith("playlist_")) {
+                result.detach();
+                String playlistId = parentId.substring(9);
+                PlaylistItemQuery query = new PlaylistItemQuery();
+                query.setId(playlistId);
+                PlaylistUtil.getPlaylist(query, songs -> {
+                    List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
+                    for (PlaylistSong song : songs) {
+                        items.add(new MediaBrowserCompat.MediaItem(
+                                new MediaDescriptionCompat.Builder()
+                                        .setMediaId(song.id)
+                                        .setTitle(song.title)
+                                        .setSubtitle(song.artistName)
+                                        .build(),
+                                MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                        ));
+                    }
+                    result.sendResult(items);
+                });
+            } else {
+                result.sendResult(mediaItems);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.sendResult(new ArrayList<>());
         }
     }
 }
