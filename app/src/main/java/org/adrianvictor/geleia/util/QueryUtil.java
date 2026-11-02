@@ -39,7 +39,7 @@ public class QueryUtil {
 
             @Override
             public void onError(Exception exception) {
-                exception.printStackTrace();
+                android.util.Log.e("QueryUtil", "getSongs error", exception);
             }
         });
     }
@@ -61,7 +61,7 @@ public class QueryUtil {
 
             @Override
             public void onError(Exception exception) {
-                exception.printStackTrace();
+                android.util.Log.e("QueryUtil", "getSongs error", exception);
             }
         });
     }
@@ -82,7 +82,7 @@ public class QueryUtil {
 
             @Override
             public void onError(Exception exception) {
-                exception.printStackTrace();
+                android.util.Log.e("QueryUtil", "getGenres error", exception);
             }
         });
     }
@@ -112,7 +112,7 @@ public class QueryUtil {
 
             @Override
             public void onError(Exception exception) {
-                exception.printStackTrace();
+                android.util.Log.e("QueryUtil", "getItems error", exception);
             }
         });
     }
@@ -133,7 +133,7 @@ public class QueryUtil {
 
             @Override
             public void onError(Exception exception) {
-                exception.printStackTrace();
+                android.util.Log.e("QueryUtil", "getAlbums error", exception);
             }
         });
     }
@@ -154,7 +154,7 @@ public class QueryUtil {
 
             @Override
             public void onError(Exception exception) {
-                exception.printStackTrace();
+                android.util.Log.e("QueryUtil", "getAlbums error", exception);
             }
         });
     }
@@ -176,7 +176,7 @@ public class QueryUtil {
 
             @Override
             public void onError(Exception exception) {
-                exception.printStackTrace();
+                android.util.Log.e("QueryUtil", "getArtists error", exception);
             }
         });
     }
@@ -224,7 +224,7 @@ public class QueryUtil {
 
             @Override
             public void onError(Exception exception) {
-                exception.printStackTrace();
+                android.util.Log.e("QueryUtil", "getSongs error", exception);
             }
         });
     }
