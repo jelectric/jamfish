@@ -433,6 +433,9 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
 
     @Override
     public IBinder onBind(Intent intent) {
+        if (MediaBrowserServiceCompat.SERVICE_INTERFACE.equals(intent.getAction())) {
+            return super.onBind(intent);
+        }
         return musicBinder;
     }
 
