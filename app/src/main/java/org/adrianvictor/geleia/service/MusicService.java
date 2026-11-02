@@ -851,13 +851,16 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
     @Nullable
     @Override
     public BrowserRoot onGetRoot(@NonNull String clientPackageName, int clientUid, @Nullable Bundle rootHints) {
+        android.util.Log.i("MusicService", "Android Auto onGetRoot from package: " + clientPackageName);
         return new BrowserRoot("root", null);
     }
 
     @Override
     public void onLoadChildren(@NonNull String parentId, @NonNull Result<List<MediaBrowserCompat.MediaItem>> result) {
+        android.util.Log.i("MusicService", "Android Auto onLoadChildren for parentId: " + parentId);
         List<MediaBrowserCompat.MediaItem> mediaItems = new ArrayList<>();
         if (App.getApiClient() == null || App.getApiClient().getCurrentUserId() == null) {
+            android.util.Log.w("MusicService", "API client or User ID is null in onLoadChildren");
             mediaItems.add(new MediaBrowserCompat.MediaItem(
                     new MediaDescriptionCompat.Builder()
                             .setMediaId("login_required")
@@ -911,14 +914,16 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
                 result.detach();
                 QueryUtil.getPlaylists(playlists -> {
                     List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
-                    for (Playlist playlist : playlists) {
-                        items.add(new MediaBrowserCompat.MediaItem(
-                                new MediaDescriptionCompat.Builder()
-                                        .setMediaId("playlist_" + playlist.id)
-                                        .setTitle(playlist.name)
-                                        .build(),
-                                MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
-                        ));
+                    if (playlists != null) {
+                        for (Playlist playlist : playlists) {
+                            items.add(new MediaBrowserCompat.MediaItem(
+                                    new MediaDescriptionCompat.Builder()
+                                            .setMediaId("playlist_" + playlist.id)
+                                            .setTitle(playlist.name)
+                                            .build(),
+                                    MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+                            ));
+                        }
                     }
                     result.sendResult(items);
                 });
@@ -927,14 +932,16 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
                 ArtistsQuery query = new ArtistsQuery();
                 QueryUtil.getArtists(query, artists -> {
                     List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
-                    for (Artist artist : artists) {
-                        items.add(new MediaBrowserCompat.MediaItem(
-                                new MediaDescriptionCompat.Builder()
-                                        .setMediaId("artist_" + artist.id)
-                                        .setTitle(artist.name)
-                                        .build(),
-                                MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
-                        ));
+                    if (artists != null) {
+                        for (Artist artist : artists) {
+                            items.add(new MediaBrowserCompat.MediaItem(
+                                    new MediaDescriptionCompat.Builder()
+                                            .setMediaId("artist_" + artist.id)
+                                            .setTitle(artist.name)
+                                            .build(),
+                                    MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+                            ));
+                        }
                     }
                     result.sendResult(items);
                 });
@@ -943,15 +950,17 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
                 ItemQuery query = new ItemQuery();
                 QueryUtil.getAlbums(query, albums -> {
                     List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
-                    for (Album album : albums) {
-                        items.add(new MediaBrowserCompat.MediaItem(
-                                new MediaDescriptionCompat.Builder()
-                                        .setMediaId("album_" + album.id)
-                                        .setTitle(album.title)
-                                        .setSubtitle(album.artistName)
-                                        .build(),
-                                MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
-                        ));
+                    if (albums != null) {
+                        for (Album album : albums) {
+                            items.add(new MediaBrowserCompat.MediaItem(
+                                    new MediaDescriptionCompat.Builder()
+                                            .setMediaId("album_" + album.id)
+                                            .setTitle(album.title)
+                                            .setSubtitle(album.artistName)
+                                            .build(),
+                                    MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+                            ));
+                        }
                     }
                     result.sendResult(items);
                 });
@@ -959,14 +968,16 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
                 result.detach();
                 QueryUtil.getGenres(genres -> {
                     List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
-                    for (Genre genre : genres) {
-                        items.add(new MediaBrowserCompat.MediaItem(
-                                new MediaDescriptionCompat.Builder()
-                                        .setMediaId("genre_" + genre.id)
-                                        .setTitle(genre.name)
-                                        .build(),
-                                MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
-                        ));
+                    if (genres != null) {
+                        for (Genre genre : genres) {
+                            items.add(new MediaBrowserCompat.MediaItem(
+                                    new MediaDescriptionCompat.Builder()
+                                            .setMediaId("genre_" + genre.id)
+                                            .setTitle(genre.name)
+                                            .build(),
+                                    MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+                            ));
+                        }
                     }
                     result.sendResult(items);
                 });
@@ -976,15 +987,17 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
                 query.setFilters(new ItemFilter[]{ItemFilter.IsFavorite});
                 QueryUtil.getSongs(query, songs -> {
                     List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
-                    for (Song song : songs) {
-                        items.add(new MediaBrowserCompat.MediaItem(
-                                new MediaDescriptionCompat.Builder()
-                                        .setMediaId(song.id)
-                                        .setTitle(song.title)
-                                        .setSubtitle(song.artistName)
-                                        .build(),
-                                MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
-                        ));
+                    if (songs != null) {
+                        for (Song song : songs) {
+                            items.add(new MediaBrowserCompat.MediaItem(
+                                    new MediaDescriptionCompat.Builder()
+                                            .setMediaId(song.id)
+                                            .setTitle(song.title)
+                                            .setSubtitle(song.artistName)
+                                            .build(),
+                                    MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                            ));
+                        }
                     }
                     result.sendResult(items);
                 });
@@ -995,15 +1008,17 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
                 query.setParentId(albumId);
                 QueryUtil.getSongs(query, songs -> {
                     List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
-                    for (Song song : songs) {
-                        items.add(new MediaBrowserCompat.MediaItem(
-                                new MediaDescriptionCompat.Builder()
-                                        .setMediaId(song.id)
-                                        .setTitle(song.title)
-                                        .setSubtitle(song.artistName)
-                                        .build(),
-                                MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
-                        ));
+                    if (songs != null) {
+                        for (Song song : songs) {
+                            items.add(new MediaBrowserCompat.MediaItem(
+                                    new MediaDescriptionCompat.Builder()
+                                            .setMediaId(song.id)
+                                            .setTitle(song.title)
+                                            .setSubtitle(song.artistName)
+                                            .build(),
+                                    MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                            ));
+                        }
                     }
                     result.sendResult(items);
                 });
@@ -1014,15 +1029,17 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
                 query.setArtistIds(new String[]{artistId});
                 QueryUtil.getSongs(query, songs -> {
                     List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
-                    for (Song song : songs) {
-                        items.add(new MediaBrowserCompat.MediaItem(
-                                new MediaDescriptionCompat.Builder()
-                                        .setMediaId(song.id)
-                                        .setTitle(song.title)
-                                        .setSubtitle(song.artistName)
-                                        .build(),
-                                MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
-                        ));
+                    if (songs != null) {
+                        for (Song song : songs) {
+                            items.add(new MediaBrowserCompat.MediaItem(
+                                    new MediaDescriptionCompat.Builder()
+                                            .setMediaId(song.id)
+                                            .setTitle(song.title)
+                                            .setSubtitle(song.artistName)
+                                            .build(),
+                                    MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                            ));
+                        }
                     }
                     result.sendResult(items);
                 });
@@ -1033,15 +1050,17 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
                 query.setGenreIds(new String[]{genreId});
                 QueryUtil.getSongs(query, songs -> {
                     List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
-                    for (Song song : songs) {
-                        items.add(new MediaBrowserCompat.MediaItem(
-                                new MediaDescriptionCompat.Builder()
-                                        .setMediaId(song.id)
-                                        .setTitle(song.title)
-                                        .setSubtitle(song.artistName)
-                                        .build(),
-                                MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
-                        ));
+                    if (songs != null) {
+                        for (Song song : songs) {
+                            items.add(new MediaBrowserCompat.MediaItem(
+                                    new MediaDescriptionCompat.Builder()
+                                            .setMediaId(song.id)
+                                            .setTitle(song.title)
+                                            .setSubtitle(song.artistName)
+                                            .build(),
+                                    MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                            ));
+                        }
                     }
                     result.sendResult(items);
                 });
@@ -1052,15 +1071,17 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
                 query.setId(playlistId);
                 PlaylistUtil.getPlaylist(query, songs -> {
                     List<MediaBrowserCompat.MediaItem> items = new ArrayList<>();
-                    for (PlaylistSong song : songs) {
-                        items.add(new MediaBrowserCompat.MediaItem(
-                                new MediaDescriptionCompat.Builder()
-                                        .setMediaId(song.id)
-                                        .setTitle(song.title)
-                                        .setSubtitle(song.artistName)
-                                        .build(),
-                                MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
-                        ));
+                    if (songs != null) {
+                        for (PlaylistSong song : songs) {
+                            items.add(new MediaBrowserCompat.MediaItem(
+                                    new MediaDescriptionCompat.Builder()
+                                            .setMediaId(song.id)
+                                            .setTitle(song.title)
+                                            .setSubtitle(song.artistName)
+                                            .build(),
+                                    MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                            ));
+                        }
                     }
                     result.sendResult(items);
                 });
@@ -1068,7 +1089,7 @@ public class MusicService extends MediaBrowserServiceCompat implements SharedPre
                 result.sendResult(mediaItems);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            android.util.Log.e("MusicService", "Error in onLoadChildren for parentId: " + parentId, e);
             result.sendResult(new ArrayList<>());
         }
     }
